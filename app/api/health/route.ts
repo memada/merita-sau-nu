@@ -1,0 +1,11 @@
+import { NextResponse } from 'next/server';
+import { getDb } from '../../../lib/db';
+export const dynamic = 'force-dynamic';
+export function GET() {
+  try {
+    getDb().prepare('SELECT id FROM leads LIMIT 1').get();
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ ok: false }, { status: 503 });
+  }
+}

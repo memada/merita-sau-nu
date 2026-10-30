@@ -1,0 +1,30 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { scryptSync } from 'node:crypto';
+import { signSession, verifySession, verifyCredentials } from '../lib/auth';
+process.env.SESSION_SECRET = 's'.repeat(64);
+process.env.ADMIN_USERNAME = 'test-admin';
+const salt = 'a'.repeat(32);
+process.env.ADMIN_PASSWORD_HASH = `scrypt:${salt}:${scryptSync('test-password-only', salt, 64).toString('hex')}`;
+test('credentials validated with hash; unconfigured auth fails closed', () => {
+  assert.equal(verifyCredentials('test-admin', 'test-password-only'), true);
+  assert.equal(verifyCredentials('test-admin', 'wrong'), false);
+  assert.equal(verifyCredentials('other', 'test-password-only'), false);
+  const old = process.env.ADMIN_PASSWORD_HASH;
+  delete process.env.ADMIN_PASSWORD_HASH;
+  assert.equal(verifyCredentials('test-admin', 'test-password-only'), false);
+  process.env.ADMIN_PASSWORD_HASH = old;
+});
+test('session rejects forgery, expiration, extra segments, missing secret', () => {
+  const time = Date.now();
+  const token = signSession('test-admin', time);
+  assert.equal(verifySession(token, time), 'test-admin');
+  assert.equal(verifySession(token + 'x', time), null);
+  assert.equal(verifySession(token, time + 8 * 3600 * 1000), null);
+  assert.equal(verifySession(token + '.extra', time), null);
+  assert.equal(verifySession(undefined, time), null);
+  const old = process.env.SESSION_SECRET;
+  delete process.env.SESSION_SECRET;
+  assert.equal(verifySession(token, time), null);
+  process.env.SESSION_SECRET = old;
+});

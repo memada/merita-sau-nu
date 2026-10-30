@@ -1,0 +1,15 @@
+
+cd /Users/madalinavatamanelu/CuStraini/merita-sau-nu
+nvm use 24
+npm ci
+cp .env.example .env.local
+npm run admin:hash
+openssl rand -hex 32
+
+
+npm run db:migrate
+npm run dev
+
+
+
+http://localhost:3002/admin

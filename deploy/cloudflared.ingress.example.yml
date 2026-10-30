@@ -1,0 +1,10 @@
+# ADD these rules to the EXISTING tunnel config, BEFORE the final catch-all.
+# Keep tunnel UUID, credentials-file and every existing hostname unchanged.
+# Replace NEW_DOMAIN with the domain configured in APP_URL (no https://).
+# Assumes cloudflared runs as a host service, not in another container.
+- hostname: NEW_DOMAIN
+  service: http://localhost:3002
+- hostname: www.NEW_DOMAIN
+  service: http://localhost:3002
+# Existing final rule must remain last:
+# - service: http_status:404

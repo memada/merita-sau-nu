@@ -1,0 +1,27 @@
+services:
+  merita-sau-nu:
+    image: ${DOCR_IMAGE:?Configurează DOCR_IMAGE}:latest
+    container_name: merita-sau-nu
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${HOST_PORT:-3002}:3000'
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: file:/app/data/leads.sqlite
+    volumes:
+      - merita-data:/app/data
+      - merita-backups:/app/backups
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+volumes:
+  merita-data:
+    name: merita-sau-nu-data
+  merita-backups:
+    name: merita-sau-nu-backups

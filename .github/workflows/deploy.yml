@@ -1,0 +1,73 @@
+name: Build & Deploy Merită sau Nu
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: merita-sau-nu-production
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - name: Registry login
+        env:
+          DOCR_ACCESS_TOKEN: ${{ secrets.DOCR_ACCESS_TOKEN }}
+          DOCR_USERNAME: ${{ secrets.DOCR_USERNAME }}
+          DOCR_REGISTRY: ${{ secrets.DOCR_REGISTRY }}
+        run: printf '%s' "$DOCR_ACCESS_TOKEN" | docker login -u "$DOCR_USERNAME" --password-stdin "$DOCR_REGISTRY"
+      - name: Build image (includes production build)
+        env:
+          DOCR_IMAGE: ${{ vars.DOCR_IMAGE }}
+          APP_URL: ${{ vars.APP_URL }}
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+        run: |
+          test -n "$DOCR_IMAGE"
+          test -n "$APP_URL"
+          docker build --build-arg APP_URL="$APP_URL" --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID="$NEXT_PUBLIC_GA_MEASUREMENT_ID" -t "$DOCR_IMAGE:latest" -t "$DOCR_IMAGE:$GITHUB_SHA" .
+          docker push "$DOCR_IMAGE:latest"
+          docker push "$DOCR_IMAGE:$GITHUB_SHA"
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Copy deployment files
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          fingerprint: ${{ secrets.DROPLET_HOST_FINGERPRINT }}
+          source: docker-compose.yml,deploy/deploy.sh
+          target: /srv/merita-sau-nu
+      - name: Deploy isolated Compose project
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          DOCR_ACCESS_TOKEN: ${{ secrets.DOCR_ACCESS_TOKEN }}
+          DOCR_USERNAME: ${{ secrets.DOCR_USERNAME }}
+          DOCR_REGISTRY: ${{ secrets.DOCR_REGISTRY }}
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          fingerprint: ${{ secrets.DROPLET_HOST_FINGERPRINT }}
+          envs: DOCR_ACCESS_TOKEN,DOCR_USERNAME,DOCR_REGISTRY
+          script: |
+            printf '%s' "$DOCR_ACCESS_TOKEN" | docker login -u "$DOCR_USERNAME" --password-stdin "$DOCR_REGISTRY"
+            sh /srv/merita-sau-nu/deploy/deploy.sh
+      - name: Check public domain
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          curl --fail --retry 12 --retry-delay 10 --retry-all-errors --connect-timeout 5 --max-time 15 "$APP_URL/api/health?deploy=$GITHUB_SHA"
