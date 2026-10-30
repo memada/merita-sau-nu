@@ -26,7 +26,11 @@ if (args[2] === 'list-tags') {
   if (mode === 'duplicate') tags.push(tags[0]);
   console.log(JSON.stringify(tags));
 } else if (args[2] === 'list-manifests') {
-  console.log(JSON.stringify([{digest: mode === 'raw' ? keep.slice(7) : keep}, {digest: mode === 'raw' ? old.slice(7) : old}, ...(['index','nested','child-error','referenced'].includes(mode) ? [{digest:'sha256:'+'c'.repeat(64)}, {digest:'sha256:'+'d'.repeat(64)}] : []), ...(mode === 'invalid' ? [{digest:'invalid'}] : [])].filter(item => mode !== 'referenced' || item.digest !== 'sha256:'+'c'.repeat(64)).filter(item => !fs.existsSync(dir + '/deleted') || !fs.readFileSync(dir + '/deleted','utf8').includes(item.digest))));
+  const listCountFile=dir+'/list-count';
+  const listCount=fs.existsSync(listCountFile)?Number(fs.readFileSync(listCountFile,'utf8'))+1:1;
+  fs.writeFileSync(listCountFile,String(listCount));
+  const stale=mode==='never-converges'||(mode==='stale-list' && listCount===2);
+  console.log(JSON.stringify([{digest: mode === 'raw' ? keep.slice(7) : keep}, {digest: mode === 'raw' ? old.slice(7) : old}, ...(['index','nested','child-error','referenced'].includes(mode) ? [{digest:'sha256:'+'c'.repeat(64)}, {digest:'sha256:'+'d'.repeat(64)}] : []), ...(mode === 'invalid' ? [{digest:'invalid'}] : [])].filter(item => mode !== 'referenced' || item.digest !== 'sha256:'+'c'.repeat(64)).filter(item => stale || !fs.existsSync(dir + '/deleted') || !fs.readFileSync(dir + '/deleted','utf8').includes(item.digest))));
 } else if (args[2] === 'delete-manifest') {
   const parent='sha256:'+'d'.repeat(64);
   const removed=fs.existsSync(dir+'/deleted') ? fs.readFileSync(dir+'/deleted','utf8') : '';
@@ -65,6 +69,8 @@ for (const mode of [
   'referenced',
   'blocked',
   'delete-error',
+  'stale-list',
+  'never-converges',
 ]) {
   test(`registry cleanup: ${mode}`, () => {
     const dir = mkdtempSync(join(tmpdir(), 'merita-cleanup-'));
@@ -78,6 +84,7 @@ for (const mode of [
           ...process.env,
           PATH: `${dir}:${process.env.PATH}`,
           CLEANUP_TEST_MODE: mode,
+          REGISTRY_VERIFY_DELAY_SECONDS: '0',
           CLEANUP_TEST_DIR: dir,
           DOCR_IMAGE: `registry.digitalocean.com/test-registry/${mode === 'wrong-repository' ? 'custraini-frontend' : 'merita-sau-nu'}`,
         },
@@ -85,7 +92,7 @@ for (const mode of [
       const deletes = existsSync(join(dir, 'deleted'))
         ? readFileSync(join(dir, 'deleted'), 'utf8').trim().split('\n')
         : [];
-      if (mode === 'normal' || mode === 'raw') {
+      if (mode === 'normal' || mode === 'raw' || mode === 'stale-list') {
         assert.equal(result.status, 0, result.stderr);
         assert.deepEqual(deletes, [old]);
         assert.ok(result.stdout.includes(keep));
@@ -96,6 +103,10 @@ for (const mode of [
         assert.equal(result.status, 0, result.stderr);
         assert.deepEqual(deletes, [obsolete, old]);
         assert.match(result.stdout, /Cleanup verified: 1 current manifest/);
+      } else if (mode === 'never-converges') {
+        assert.notEqual(result.status, 0);
+        assert.deepEqual(deletes, [old]);
+        assert.match(result.stderr, /did not converge/);
       } else {
         assert.notEqual(result.status, 0);
         assert.deepEqual(deletes, []);

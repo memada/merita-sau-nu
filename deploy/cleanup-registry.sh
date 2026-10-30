@@ -90,22 +90,32 @@ while [ -n "$pending" ]; do
   fi
   pending="$deferred"
 done
-if [ "$(latest_digest)" != "$keep" ]; then
-  echo 'latest changed before final verification.' >&2
-  exit 1
-fi
-remaining=$(doctl registry repository list-manifests "$repository" --registry "$registry" --output json |
-  jq -er '.[] | .digest')
-count=0
-found_latest=false
-for digest in $remaining; do
-  digest=$(normalize_digest "$digest")
-  case "$protected" in
-    *" $digest "*) ;;
-    *) echo 'Old manifests still present after cleanup.' >&2; exit 1 ;;
-  esac
-  if [ "$digest" = "$keep" ]; then found_latest=true; fi
-  count=$((count + 1))
+# The registry listing can briefly contain manifests whose DELETE already succeeded.
+# Poll reads only; never delete additional images based on a stale final listing.
+for attempt in 1 2 3 4 5 6; do
+  if [ "$(latest_digest)" != "$keep" ]; then
+    echo 'latest changed before final verification.' >&2
+    exit 1
+  fi
+  remaining=$(doctl registry repository list-manifests "$repository" --registry "$registry" --output json |
+    jq -r 'if type == "array" then .[] | .digest | if type == "string" then . else error("Invalid digest") end else error("Invalid manifest list") end')
+  count=0
+  found_latest=false
+  old_present=false
+  for digest in $remaining; do
+    digest=$(normalize_digest "$digest")
+    case "$protected" in *" $digest "*) ;; *) old_present=true ;; esac
+    if [ "$digest" = "$keep" ]; then found_latest=true; fi
+    count=$((count + 1))
+  done
+  if [ "$old_present" = false ] && [ "$found_latest" = true ]; then
+    printf 'Cleanup verified: %s current manifest(s) remain. Latest: %s\n' "$count" "$keep"
+    exit 0
+  fi
+  if [ "$attempt" -lt 6 ]; then
+    printf 'Waiting for registry listing to reflect deletions (%s/6).\n' "$attempt"
+    sleep "${REGISTRY_VERIFY_DELAY_SECONDS:-5}"
+  fi
 done
-if [ "$found_latest" != true ]; then echo 'latest manifest missing after cleanup.' >&2; exit 1; fi
-printf 'Cleanup verified: %s current manifest(s) remain. Latest: %s\n' "$count" "$keep"
+echo 'Registry listing did not converge after cleanup verification retries.' >&2
+exit 1
