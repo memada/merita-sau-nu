@@ -42,30 +42,63 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Verify SSH server and prepare connection
+        env:
+          DROPLET_IP: ${{ secrets.DROPLET_IP }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+          DROPLET_SSH_KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          DROPLET_HOST_FINGERPRINT: ${{ secrets.DROPLET_HOST_FINGERPRINT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          [[ "$DROPLET_IP" =~ ^[0-9.]+$ ]]
+          [[ "$DROPLET_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          printf '%s\n' "$DROPLET_SSH_KEY" > "$RUNNER_TEMP/merita_deploy_key"
+          ssh-keygen -y -P '' -f "$RUNNER_TEMP/merita_deploy_key" > /dev/null
+          ssh-keyscan -T 10 -t rsa "$DROPLET_IP" > "$RUNNER_TEMP/merita_known_hosts" 2>/dev/null
+          actual=$(ssh-keygen -lf "$RUNNER_TEMP/merita_known_hosts" -E sha256 | awk '{print $2}')
+          expected=$(printf '%s' "$DROPLET_HOST_FINGERPRINT" | tr -d '[:space:]')
+          if [ "$actual" != "$expected" ]; then
+            printf 'RSA host fingerprint mismatch. Server presented: %s\n' "$actual"
+            exit 1
+          fi
+          cat > "$RUNNER_TEMP/merita_ssh_config" <<EOF
+          Host merita-droplet
+            HostName $DROPLET_IP
+            User $DROPLET_USER
+            IdentityFile "$RUNNER_TEMP/merita_deploy_key"
+            UserKnownHostsFile "$RUNNER_TEMP/merita_known_hosts"
+            StrictHostKeyChecking yes
+            HostKeyAlgorithms rsa-sha2-512,rsa-sha2-256
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 15
+            ServerAliveInterval 15
+            ServerAliveCountMax 4
+          EOF
       - name: Copy deployment files
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          fingerprint: ${{ secrets.DROPLET_HOST_FINGERPRINT }}
-          source: docker-compose.yml,deploy/deploy.sh
-          target: /srv/merita-sau-nu
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -F "$RUNNER_TEMP/merita_ssh_config" merita-droplet 'mkdir -p /srv/merita-sau-nu/deploy'
+          scp -F "$RUNNER_TEMP/merita_ssh_config" docker-compose.yml merita-droplet:/srv/merita-sau-nu/
+          scp -F "$RUNNER_TEMP/merita_ssh_config" deploy/deploy.sh merita-droplet:/srv/merita-sau-nu/deploy/
       - name: Deploy isolated Compose project
-        uses: appleboy/ssh-action@v1.2.5
         env:
           DOCR_ACCESS_TOKEN: ${{ secrets.DOCR_ACCESS_TOKEN }}
           DOCR_USERNAME: ${{ secrets.DOCR_USERNAME }}
           DOCR_REGISTRY: ${{ secrets.DOCR_REGISTRY }}
-        with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          fingerprint: ${{ secrets.DROPLET_HOST_FINGERPRINT }}
-          envs: DOCR_ACCESS_TOKEN,DOCR_USERNAME,DOCR_REGISTRY
-          script: |
-            printf '%s' "$DOCR_ACCESS_TOKEN" | docker login -u "$DOCR_USERNAME" --password-stdin "$DOCR_REGISTRY"
-            sh /srv/merita-sau-nu/deploy/deploy.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf -v login_command 'docker login -u %q --password-stdin %q' "$DOCR_USERNAME" "$DOCR_REGISTRY"
+          printf '%s' "$DOCR_ACCESS_TOKEN" | ssh -F "$RUNNER_TEMP/merita_ssh_config" merita-droplet "$login_command"
+          ssh -F "$RUNNER_TEMP/merita_ssh_config" merita-droplet 'sh /srv/merita-sau-nu/deploy/deploy.sh'
+      - name: Remove temporary SSH credentials
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/merita_deploy_key" "$RUNNER_TEMP/merita_known_hosts" "$RUNNER_TEMP/merita_ssh_config"
       - name: Check public domain
         env:
           APP_URL: ${{ vars.APP_URL }}
