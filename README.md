@@ -282,11 +282,17 @@ git push -u origin main
 ```
 
 Workflow-ul rulează teste + typecheck, construiește imaginea, o publică în DOCR cu
-`latest` și SHA, copiază numai fișierele deploy și execută pe droplet backup,
-`docker compose pull`, `docker compose up -d --force-recreate --wait`. Verifică
-apoi domeniul public `/api/health`. Nu face prune global pe droplet și nu șterge
-imagini din registry. Păstrează câteva taguri SHA pentru rollback și curăță ulterior
-numai repository-ul acestei aplicații conform spațiului disponibil.
+`latest`, copiază numai fișierele deploy și execută pe droplet backup,
+`docker compose pull`, `docker compose up -d --force-recreate --wait`. După ce noul
+container devine healthy, elimină local imaginea înlocuită dacă nu este referită
+și de alt container (fără force sau prune global). Verifică domeniul public
+`/api/health`, apoi șterge manifestele vechi exclusiv din repository-ul
+`merita-sau-nu`, păstrând digestul etichetat `latest`. Dacă deploy-ul sau verificarea
+domeniului eșuează, curățarea registry-ului nu rulează. Dacă `latest` lipsește sau
+se schimbă în timpul curățării, scriptul oprește ștergerea. Tokenul DO trebuie să
+permită și ștergerea manifestelor. Registry-ul CuStrăini rămâne neatins.
+Nu se mai păstrează versiuni istorice pentru rollback în registry.
+
 
 Pentru build/deploy manual, setează valorile proprii în shell, apoi:
 
@@ -334,7 +340,7 @@ docker compose up -d --wait
 
 Nu executa `docker compose down -v`: ar șterge volumele. Nu monta directoare cu
 permisiuni incompatibile cu UID 1000 (`node` din imagine). Pentru rollback de cod,
-folosește un tag SHA păstrat și o configurație Compose revizuită; dacă schema s-a
+reconstruiește commitul anterior și publică-l ca `latest`; dacă schema s-a
 schimbat incompatibil, restaurează și backupul de dinainte de deploy.
 
 ## Politica GDPR și retenția

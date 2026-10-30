@@ -6,6 +6,13 @@ cd /srv/merita-sau-nu
 if docker compose ps --status running --services | grep -qx merita-sau-nu; then
   docker compose exec -T merita-sau-nu node scripts/backup.mjs
 fi
+previous_image=$(docker inspect --format '{{.Image}}' merita-sau-nu 2>/dev/null || true)
 docker compose pull
 docker compose up -d --force-recreate --wait --wait-timeout 120
+# Remove only the replaced image, after the new container is healthy.
+# No --force: Docker protects images referenced by any other container.
+current_image=$(docker inspect --format '{{.Image}}' merita-sau-nu)
+if [ -n "$previous_image" ] && [ "$previous_image" != "$current_image" ]; then
+  docker image rm "$previous_image" || printf '%s\n' 'Previous image still referenced; kept locally.'
+fi
 # No global image pruning: the droplet may run other applications.

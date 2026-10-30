@@ -34,9 +34,8 @@ jobs:
         run: |
           test -n "$DOCR_IMAGE"
           test -n "$APP_URL"
-          docker build --build-arg APP_URL="$APP_URL" --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID="$NEXT_PUBLIC_GA_MEASUREMENT_ID" -t "$DOCR_IMAGE:latest" -t "$DOCR_IMAGE:$GITHUB_SHA" .
+          docker build --build-arg APP_URL="$APP_URL" --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID="$NEXT_PUBLIC_GA_MEASUREMENT_ID" -t "$DOCR_IMAGE:latest" .
           docker push "$DOCR_IMAGE:latest"
-          docker push "$DOCR_IMAGE:$GITHUB_SHA"
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -104,3 +103,11 @@ jobs:
           APP_URL: ${{ vars.APP_URL }}
         run: |
           curl --fail --retry 12 --retry-delay 10 --retry-all-errors --connect-timeout 5 --max-time 15 "$APP_URL/api/health?deploy=$GITHUB_SHA"
+      - name: Set up doctl for image cleanup
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DOCR_ACCESS_TOKEN }}
+      - name: Keep only latest Merita sau Nu registry image
+        env:
+          DOCR_IMAGE: ${{ vars.DOCR_IMAGE }}
+        run: bash deploy/cleanup-registry.sh
