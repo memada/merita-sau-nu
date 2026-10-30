@@ -1,21 +1,23 @@
-# Fișiere create
+# Fișierele proiectului
 
-Toate fișierele sunt în noul director `merita-sau-nu/`. Proiectul
-`custraini-frontend/` a fost doar citit. Modificările sale preexistente au fost păstrate.
-Fișierele generate de build, dependențele, bazele temporare și capturile QA nu sunt
-incluse în această listă.
+Inventarul surselor versionabile din repository-ul separat `merita-sau-nu`.
+Sunt excluse dependențele, buildurile, bazele de date, backupurile, ENV privat și
+capturile QA. [Wiki-ul](docs/wiki/README.md) descrie configurația finală.
 
 - [.dockerignore](.dockerignore)
 - [.env.example](.env.example)
 - [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
 - [.gitignore](.gitignore)
+- [.npmrc](.npmrc)
 - [.nvmrc](.nvmrc)
 - [.prettierignore](.prettierignore)
 - [.prettierrc.json](.prettierrc.json)
+- [AGENTS.md](AGENTS.md)
 - [Dockerfile](Dockerfile)
 - [FILES.md](FILES.md)
 - [README.md](README.md)
 - [TECHNICAL_PLAN.md](TECHNICAL_PLAN.md)
+- [VERIFICATION.md](VERIFICATION.md)
 - [app/admin/(protected)/layout.tsx](<app/admin/(protected)/layout.tsx>)
 - [app/admin/(protected)/leads/[id]/page.tsx](<app/admin/(protected)/leads/[id]/page.tsx>)
 - [app/admin/(protected)/leads/page.tsx](<app/admin/(protected)/leads/page.tsx>)
@@ -54,13 +56,21 @@ incluse în această listă.
 - [components/admin/Login.tsx](components/admin/Login.tsx)
 - [components/admin/Logout.tsx](components/admin/Logout.tsx)
 - [db/migrations/001_initial.sql](db/migrations/001_initial.sql)
+- [deploy/cleanup-registry.sh](deploy/cleanup-registry.sh)
 - [deploy/cloudflared.ingress.example.yml](deploy/cloudflared.ingress.example.yml)
 - [deploy/deploy.sh](deploy/deploy.sh)
 - [docker-compose.yml](docker-compose.yml)
 - [docker-entrypoint.sh](docker-entrypoint.sh)
+- [docs/wiki/README.md](docs/wiki/README.md)
+- [docs/wiki/architecture.md](docs/wiki/architecture.md)
+- [docs/wiki/decisions.md](docs/wiki/decisions.md)
+- [docs/wiki/deployment.md](docs/wiki/deployment.md)
+- [docs/wiki/operations.md](docs/wiki/operations.md)
+- [docs/wiki/troubleshooting.md](docs/wiki/troubleshooting.md)
 - [lib/analytics.ts](lib/analytics.ts)
 - [lib/auth.ts](lib/auth.ts)
 - [lib/batteryCalculator.ts](lib/batteryCalculator.ts)
+- [lib/calculatorWizard.ts](lib/calculatorWizard.ts)
 - [lib/config.ts](lib/config.ts)
 - [lib/db.ts](lib/db.ts)
 - [lib/leadScoring.ts](lib/leadScoring.ts)
@@ -70,6 +80,7 @@ incluse în această listă.
 - [lib/privacy.ts](lib/privacy.ts)
 - [lib/security.ts](lib/security.ts)
 - [lib/validation.ts](lib/validation.ts)
+- [meritasaunu.txt](meritasaunu.txt)
 - [next-env.d.ts](next-env.d.ts)
 - [next.config.js](next.config.js)
 - [package-lock.json](package-lock.json)
@@ -85,13 +96,11 @@ incluse în această listă.
 - [scripts/seed.ts](scripts/seed.ts)
 - [scripts/start.mjs](scripts/start.mjs)
 - [tests/auth.test.ts](tests/auth.test.ts)
+- [tests/calculator-wizard.test.ts](tests/calculator-wizard.test.ts)
 - [tests/calculator.test.ts](tests/calculator.test.ts)
 - [tests/e2e/flow.spec.ts](tests/e2e/flow.spec.ts)
 - [tests/fixtures.ts](tests/fixtures.ts)
+- [tests/registry-cleanup.test.ts](tests/registry-cleanup.test.ts)
 - [tests/scoring-validation.test.ts](tests/scoring-validation.test.ts)
 - [tests/storage.test.ts](tests/storage.test.ts)
 - [tsconfig.json](tsconfig.json)
-- [VERIFICATION.md](VERIFICATION.md)
-
-- [lib/calculatorWizard.ts](lib/calculatorWizard.ts)
-- [tests/calculator-wizard.test.ts](tests/calculator-wizard.test.ts)

@@ -5,11 +5,21 @@ fotovoltaică → estimare orientativă → solicitare de până la 3 oferte →
 manuală în admin. Nu conține marketplace, plăți, conturi pentru instalatori sau
 trimitere automată către furnizori.
 
+## Wiki și configurație confirmată
+
+[Wiki-ul proiectului](docs/wiki/README.md) documentează configurația finală de
+producție, deploy-ul, ENV, backupurile, incidentele rezolvate și deciziile.
+[AGENTS.md](AGENTS.md) păstrează contextul pentru sesiunile viitoare de lucru.
+
+Site: **https://meritasaunu.com**. Admin: **https://meritasaunu.com/admin**.
+Repository: **memada/merita-sau-nu**. Checkout local: `~/merita-sau-nu`, separat
+de CuStrăini. Fluxul public → lead → admin a fost confirmat în producție.
+
 ## Stack și referință
 
 Next.js 16 App Router, React 18, TypeScript strict, Tailwind CSS 4, Node.js 24,
 npm. Arhitectura, Route Handlers, Docker standalone și GitHub Actions/DOCR/SSH
-urmează `../custraini-frontend`. Proiectul model nu are ORM/auth; aici SQLite
+urmează proiectul de referință `~/CuStraini/custraini-frontend`. Proiectul model nu are ORM/auth; aici SQLite
 (`node:sqlite`) și autentificarea cu scrypt/HMAC acoperă cerințele suplimentare.
 Zod este folosit pentru validarea comună client/server. Nu sunt necesare Notion,
 un server de DB sau un serviciu de auth extern.
@@ -164,153 +174,23 @@ rezultatele și confirmările sunt noindex. Schimbarea domeniului cere rebuild �
 actualizarea ENV runtime. Nu activa cache public pentru API, admin sau răspunsuri
 personalizate.
 
-## Deploy DigitalOcean — același model ca referința
+## Deploy DigitalOcean
 
-Nu se modifică `/srv/custraini`, portul 3001 sau configurația aplicației existente.
-Aplicația nouă folosește `/srv/merita-sau-nu`, container separat, port host 3002
-legat doar de loopback, imagine proprie și volume proprii.
+Configurația finală și toate comenzile sunt în:
 
-### 1. Repository și CI
+- [Deploy și GitHub Actions](docs/wiki/deployment.md)
+- [ENV, health, backup și recuperare](docs/wiki/operations.md)
+- [Depanare](docs/wiki/troubleshooting.md)
 
-Creează un repository GitHub nou din conținutul acestui director; workflow-ul
-presupune că `package.json` și Dockerfile sunt la rădăcina repository-ului.
+Orice push pe main declanșează publicarea, inclusiv un commit doar cu documentație.
+Aplicația folosește `/srv/merita-sau-nu`, portul loopback 3002, container și volume
+separate. Registry-ul păstrează numai latest după deploy și health reușite.
+OpenSSH verifică amprenta RSA a dropletului. Nu se suprascrie ENV-ul serverului.
 
-GitHub Actions secrets:
-
-- `DOCR_ACCESS_TOKEN`, `DOCR_USERNAME`, `DOCR_REGISTRY`
-- `DROPLET_IP`, `DROPLET_USER`, `DROPLET_SSH_KEY`
-- `DROPLET_HOST_FINGERPRINT` — amprenta SHA256 SSH verificată prin consola DO
-
-Repository variables:
-
-- `DOCR_IMAGE=registry.digitalocean.com/NAMESPACE/merita-sau-nu`
-- `APP_URL=https://DOMENIU_NOU`
-- `NEXT_PUBLIC_GA_MEASUREMENT_ID` — opțional
-
-Registry-ul din referință este privat. Folosește token cu accesul necesar și
-cheie dedicată. `DROPLET_USER` trebuie să poată scrie în `/srv/merita-sau-nu` și
-rula Docker. Grupul docker conferă privilegii mari asupra serverului.
-
-### 2. Pregătire droplet (o singură dată)
-
-Folosește Docker Engine și pluginul Compose deja folosite de aplicația model.
-Verifică portul înainte de alegere:
-
-```bash
-ssh UTILIZATOR@IP_DROPLET
-sudo ss -ltnp | grep ':3002' || true
-sudo mkdir -p /srv/merita-sau-nu/deploy
-sudo chown -R UTILIZATOR:UTILIZATOR /srv/merita-sau-nu
-```
-
-De pe calculator, din directorul proiectului:
-
-```bash
-scp docker-compose.yml UTILIZATOR@IP_DROPLET:/srv/merita-sau-nu/
-scp deploy/deploy.sh UTILIZATOR@IP_DROPLET:/srv/merita-sau-nu/deploy/
-scp .env.example UTILIZATOR@IP_DROPLET:/srv/merita-sau-nu/.env
-```
-
-Pe droplet, editează fișierul fără a-l comite:
-
-```bash
-cd /srv/merita-sau-nu
-chmod 600 .env
-nano .env
-```
-
-Setează APP_URL=https://DOMENIU_NOU, DOCR_IMAGE, HOST_PORT=3002,
-DATABASE_URL=file:/app/data/leads.sqlite, credențialele admin și SESSION_SECRET.
-Completează datele operatorului și furnizorii. Cu tunelul host și loopback-only,
-setează TRUST_CF_HEADERS=true după verificarea regulilor de acces. Pentru un
-hash scrypt ce conține caractere speciale, folosește ghilimele simple în `.env`.
-CI nu suprascrie `.env`.
-
-### 3. Cloudflare Tunnel și domeniu
-
-Notițele modelului indică `my-hello`, dar configurația live nu este în repo.
-Mai întâi identifică pe server modul de gestionare și fișierul real:
-
-```bash
-sudo systemctl status cloudflared
-sudo systemctl cat cloudflared
-cloudflared tunnel list
-```
-
-Nu afișa sau copia tokenul/credențialele serviciului în chat sau loguri.
-Confirmă că domeniul nou este activ în contul Cloudflare și că ai drepturile
-necesare. Pentru tunel local, adaugă regulile din
-`deploy/cloudflared.ingress.example.yml` în secțiunea `ingress` existentă, înainte
-de catch-all, păstrând toate regulile vechi, UUID-ul și credentials-file.
-Înlocuiește NEW_DOMAIN cu domeniul tău și 3002 cu HOST_PORT. Pe server:
-
-```bash
-cloudflared tunnel route dns my-hello DOMENIU_NOU
-cloudflared tunnel route dns my-hello www.DOMENIU_NOU
-sudo cloudflared tunnel --config /CALEA/CONFIG_EXISTENT.yml ingress validate
-sudo systemctl restart cloudflared
-```
-
-Înlocuiește `my-hello` dacă tunelul real are alt nume. Comenzile de DNS necesită
-certificat de administrare autorizat pentru zona nouă; dacă lipsește, folosește
-un login autorizat fără să ștergi credentialele existente, sau configurează DNS
-prin dashboard. Pentru tunel gestionat din dashboard, adaugă în tunelul existent
-Published application routes pentru domeniu și www cu serviciu
-`http://localhost:3002`; nu edita un fișier local ignorat de acel mod de gestionare.
-Configurarea locală presupune cloudflared ca serviciu pe host. Dacă rulează în
-Docker, localhost desemnează containerul cloudflared: configurează o rețea comună
-și adresa serviciului doar după inspectarea configurației reale.
-
-Cloudflare termină HTTPS la edge, iar tunelul ajunge la HTTP local; nu este necesar
-un Nginx nou pentru această topologie. Păstrează originul inaccesibil public pe 3002. Configurează redirecționarea www → domeniul din APP_URL în Cloudflare;
-folosește domeniul canonic pentru formular/admin deoarece mutațiile verifică Origin.
-Repornește tunelul într-o fereastră potrivită: regulile sunt partajate cu celelalte
-aplicații. Nu reinstala sau înlocui serviciul existent.
-
-Documentație: https://developers.cloudflare.com/tunnel/features/locally-managed-tunnels/configuration-file/
-
-### 4. Publicare
-
-După configurarea domeniului, ENV și secretelor:
-
-```bash
-git init -b main
-git add .
-git commit -m "Build Merita sau Nu MVP"
-git remote add origin URL_REPOSITORY_NOU
-git push -u origin main
-```
-
-Workflow-ul rulează teste + typecheck, construiește imaginea, o publică în DOCR cu
-`latest`, copiază numai fișierele deploy și execută pe droplet backup,
-`docker compose pull`, `docker compose up -d --force-recreate --wait`. După ce noul
-container devine healthy, elimină local imaginea înlocuită dacă nu este referită
-și de alt container (fără force sau prune global). Verifică domeniul public
-`/api/health`, apoi șterge manifestele vechi exclusiv din repository-ul
-`merita-sau-nu`, păstrând digestul etichetat `latest`. Dacă deploy-ul sau verificarea
-domeniului eșuează, curățarea registry-ului nu rulează. Dacă `latest` lipsește sau
-se schimbă în timpul curățării, scriptul oprește ștergerea. Tokenul DO trebuie să
-permită și ștergerea manifestelor. Registry-ul CuStrăini rămâne neatins.
-Nu se mai păstrează versiuni istorice pentru rollback în registry.
-
-
-Pentru build/deploy manual, setează valorile proprii în shell, apoi:
-
-```bash
-# local, după docker login registry.digitalocean.com
-export DOCR_IMAGE=registry.digitalocean.com/NAMESPACE/merita-sau-nu
-export APP_URL=https://DOMENIU_NOU
-docker build --platform linux/amd64 --build-arg APP_URL="$APP_URL" -t "$DOCR_IMAGE:latest" .
-docker push "$DOCR_IMAGE:latest"
-# droplet, după login în același registry
-sh /srv/merita-sau-nu/deploy/deploy.sh
-curl --fail http://127.0.0.1:3002/api/health
-curl --fail https://DOMENIU_NOU/api/health
-```
-
-Platforma exemplului este amd64, ca dropletul/runnerul modelului; verific-o cu
-`uname -m` înainte de build manual. Docker/Compose trebuie testate pe server;
-în mediul de implementare Docker poate să nu fie instalat.
+**Rutele funcționale ale tunelului se configurează în dashboard-ul Cloudflare.**
+DNS-ul către my-hello este necesar, dar trebuie adăugate și cele două Published
+application routes către `http://127.0.0.1:3002`. Nu presupune că un fișier local
+validat în shell reprezintă configurația efectivă a serviciului.
 
 ## Backup și restaurare DB
 
@@ -360,15 +240,14 @@ node --env-file-if-exists=.env.local scripts/retention.mjs --apply
 # în producție: docker compose exec -T merita-sau-nu node scripts/retention.mjs [--apply]
 ```
 
-## Pași manuali înainte de lansare
+## Stare și continuare
 
-1. Creează repo-ul/DOCR și configurează CI secrets/variables.
-2. Verifică resursele dropletului și portul, configurează ENV, credențialele și backupurile.
-3. Configurează domeniul și regulile suplimentare ale tunelului existent.
-4. Completează/verifică identitatea operatorului, destinatarii și textele legale.
-5. Stabilește procesul manual de verificare/transmitere către maximum 3 furnizori,
-   cererile de ștergere și retenția efectivă.
-6. Rulează deploy-ul și verifică pe domeniul real calculator, formular, admin și CSV.
-7. Configurează GA numai dacă este dorit și verifică acordul separat de măsurare.
+Lansarea din 30 octombrie 2026 este confirmată: deploy și curățare reușite,
+health-uri publice 200 și lead creat de pe site vizibil în admin.
+
+[Deciziile și verificările](docs/wiki/decisions.md) separă funcționalitățile
+confirmate de ce rămâne de configurat: Analytics, per-IP rate limit, redirecționare
+www, backup off-droplet și programarea retenției. Acestea nu au fost activate
+implicit. Vezi [raportul de verificare](VERIFICATION.md).
 
 Referințe pentru textele de informare: [Comisia Europeană — drepturile persoanelor](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en) și [informarea privind datele personale](https://europa.eu/youreurope/citizens/consumers/internet-telecoms/data-protection-online-privacy/).

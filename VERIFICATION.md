@@ -2,7 +2,7 @@
 
 Mediu: Node.js 24.22.0, Chrome local, macOS.
 
-- `npm test`: **30/30 trecute**. Calculator, warning-uri, scoring, telefon,
+- `npm test`: **47/47 trecute**. Calculator, warning-uri, scoring, telefon,
   validare, consimțământ, stocare, duplicate, filtre, paginare, CSV, rate limit,
   Origin, sesiuni și date calendaristice inclusiv schimbarea orei în România.
 - `npm run typecheck`: trecut.
@@ -21,15 +21,28 @@ Mediu: Node.js 24.22.0, Chrome local, macOS.
 - `sh -n docker-entrypoint.sh` și `sh -n deploy/deploy.sh`: trecute.
 - `npm run format:check`: verificare Prettier pentru întregul proiect.
 
-## Limite de verificare
+## Verificarea producției
 
-Docker nu este instalat în mediul local; imaginea și Compose nu au fost pornite.
-Nu au fost accesate sau modificate dropletul, DNS-ul sau tunelul live. Workflow-ul
-GitHub Actions nu a fost executat într-un repository remote. Sunt necesare
-repo/secrets/ENV, domeniu, date operator și destinatari pentru lansare.
-Analytics este opțional; testele de flux au rulat cu GA dezactivat.
-Nu s-au trimis cereri către furnizori. Testele folosesc baze temporare curățate.
-Proiectul model a fost doar citit; modificările sale preexistente au fost păstrate.
+Ulterior verificărilor locale, în aceeași zi:
+
+- GitHub Actions: build, teste, typecheck, deploy, health public și curățare trecute.
+- Registry DO: o singură imagine latest, confirmată în dashboard și prin logul
+  `Cleanup verified: 1 current manifest(s) remain.`
+- Direct pe droplet: cloudflared active/enabled, container healthy, homepage local
+  și public 200, health principal și www 200.
+- Utilizatorul a confirmat un lead creat prin formularul site-ului și vizibil în admin.
+- Cele 4 variabile operator/disclosure sunt configurate. Valorile nu sunt documentate.
+
+## Limite și separarea verificărilor
+
+Docker nu este instalat pe Mac; buildul imaginii și rularea Compose au fost
+confirmate prin workflow și producție. Cele 6 teste browser sunt verificările
+locale anterioare, nu o suită browser rerulată pe DB-ul real. Nu au fost trimise
+automat solicitări către furnizori. Testele de stocare folosesc DB-uri temporare.
+Analytics este neconfigurat. Nu s-a testat restaurarea DB-ului de producție.
+CuStrăini a fost referință; repository-ul său nu a fost modificat de implementare.
+
+Vezi [wiki](docs/wiki/README.md) pentru configurația finală și limitele operaționale.
 
 Verificare suplimentară: puterea PV lipsă blochează pasul 1 chiar dacă următorii
 pași nu sunt completați. Progresul salvat incomplet revine la primul pas invalid,

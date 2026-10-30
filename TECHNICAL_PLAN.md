@@ -2,7 +2,7 @@
 
 ## Referința inspectată înainte de implementare
 
-`../custraini-frontend`: Next.js 16 App Router, React 18, TypeScript strict,
+`~/CuStraini/custraini-frontend`: Next.js 16 App Router, React 18, TypeScript strict,
 Node 24, npm, Tailwind 4, module în `lib`, Route Handlers în `app/api`.
 Next produce output `standalone`. Docker multi-stage pornește `server.js` pe 3000. GitHub Actions construiește pe main, publică în DOCR, face deploy prin SSH
 și Docker Compose în `/srv/custraini`, cu port host 3001 și restart unless-stopped.
@@ -36,3 +36,11 @@ transmitere automată către furnizori. Rezultatele sunt orientative.
 Publicarea pe droplet necesită configurarea repo-ului, secretelor și domeniului.
 Identitatea operatorului, contactul, retenția și furnizorii trebuie completate
 și verificate înainte de lansarea colectării datelor reale.
+
+## Rezultat final
+
+Proiectul a fost mutat în `~/merita-sau-nu`, publicat în repository separat și
+lansat pe meritasaunu.com. Starea reală, deciziile ulterioare planului și
+infrastructura verificată sunt în [wiki](docs/wiki/README.md). În particular,
+rutele s-au configurat din dashboard-ul Cloudflare, SSH folosește OpenSSH nativ,
+iar registry-ul păstrează numai latest. Acesta rămâne planul inițial, nu runbook-ul.
