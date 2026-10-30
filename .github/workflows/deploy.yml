@@ -34,7 +34,7 @@ jobs:
         run: |
           test -n "$DOCR_IMAGE"
           test -n "$APP_URL"
-          docker build --build-arg APP_URL="$APP_URL" --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID="$NEXT_PUBLIC_GA_MEASUREMENT_ID" -t "$DOCR_IMAGE:latest" .
+          docker build --platform linux/amd64 --provenance=false --sbom=false --load --build-arg APP_URL="$APP_URL" --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID="$NEXT_PUBLIC_GA_MEASUREMENT_ID" -t "$DOCR_IMAGE:latest" .
           docker push "$DOCR_IMAGE:latest"
   deploy:
     needs: build
@@ -110,4 +110,9 @@ jobs:
       - name: Keep only latest Merita sau Nu registry image
         env:
           DOCR_IMAGE: ${{ vars.DOCR_IMAGE }}
-        run: bash deploy/cleanup-registry.sh
+          DOCR_ACCESS_TOKEN: ${{ secrets.DOCR_ACCESS_TOKEN }}
+          DOCR_USERNAME: ${{ secrets.DOCR_USERNAME }}
+          DOCR_REGISTRY: ${{ secrets.DOCR_REGISTRY }}
+        run: |
+          printf '%s' "$DOCR_ACCESS_TOKEN" | docker login -u "$DOCR_USERNAME" --password-stdin "$DOCR_REGISTRY"
+          bash deploy/cleanup-registry.sh
