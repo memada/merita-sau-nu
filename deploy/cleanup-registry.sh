@@ -7,16 +7,34 @@ if [[ ! "${DOCR_IMAGE:-}" =~ ^registry\.digitalocean\.com/([a-z0-9-]+)/merita-sa
 fi
 registry="${BASH_REMATCH[1]}"
 repository=merita-sau-nu
+normalize_digest() {
+  local value="${1#sha256:}"
+  if [[ ! "$value" =~ ^[a-f0-9]{64}$ ]]; then
+    echo 'Invalid registry digest; refusing image deletion.' >&2
+    return 1
+  fi
+  printf 'sha256:%s\n' "$value"
+}
 latest_digest() {
-  doctl registry repository list-tags "$repository" --registry "$registry" --format Tag,ManifestDigest --no-header |
-    awk '$1 == "latest" {print $2}'
+  local value
+  value=$(doctl registry repository list-tags "$repository" --registry "$registry" --output json |
+    jq -er '[.[] | select(.tag == "latest") | .manifest_digest] |
+      if length == 1 and (.[0] | type == "string") then .[0]
+      else error("Expected exactly one latest digest") end')
+  normalize_digest "$value"
 }
 keep=$(latest_digest)
 if [[ ! "$keep" =~ ^sha256:[a-f0-9]{64}$ ]]; then
   echo 'Cannot resolve one valid latest digest; refusing image deletion.' >&2
   exit 1
 fi
-manifests=$(doctl registry repository list-manifests "$repository" --registry "$registry" --format Digest --no-header)
+raw_manifests=$(doctl registry repository list-manifests "$repository" --registry "$registry" --output json |
+  jq -er '.[] | .digest | if type == "string" then . else error("Invalid manifest") end')
+manifests=""
+for digest in $raw_manifests; do
+  normalized=$(normalize_digest "$digest")
+  manifests="$manifests $normalized"
+done
 for digest in $manifests; do
   if [[ ! "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
     echo 'Invalid manifest digest; refusing image deletion.' >&2
