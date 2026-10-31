@@ -23,6 +23,8 @@ This repository is independent of CuStrăini. UI and operational explanations us
 
 ## Working conventions
 
+- User requirement: with every project change, update README.md and the relevant Markdown documentation (wiki, runbook, verification or checklist) so they match the implementation.
+
 - Preserve Next.js App Router, TypeScript, Node 24, npm, standalone Docker and SQLite.
 - Pure business rules live in `lib`; shared Zod schemas validate client and server.
 - Use the public npm registry; keep `.npmrc` and public lockfile URLs.

@@ -296,3 +296,9 @@ ZIP-ul este în `dist/merita-sau-nu-source.zip`, numai surse cunoscute de Git,
 fără ENV/DB/backups/build/dependențe/rapoarte/artefacte. Python 3 și Git sunt
 necesare. `.env.example` rămâne versionat; toate `.env*` sunt excluse din ZIP.
 Nu loga payload-uri, căutări admin, cookie-uri sau exporturi CSV.
+
+## Întreținerea documentației
+
+La fiecare modificare a proiectului, actualizează acest README și documentația
+Markdown relevantă (wiki, runbook, verificări sau checklist), astfel încât să
+reflecte implementarea și starea verificată. Regula este păstrată și în AGENTS.md.
