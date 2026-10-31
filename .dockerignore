@@ -10,3 +10,14 @@ test-results
 playwright-report
 *.tsbuildinfo
 artifacts
+
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+dist
+
+# Nested files must also stay outside the Docker build context.
+**/.env*
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm

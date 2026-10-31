@@ -9,3 +9,9 @@ backups/
 playwright-report/
 test-results/
 artifacts/
+
+# Sensitive databases anywhere, including WAL sidecars and source archives.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+dist/

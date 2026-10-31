@@ -251,3 +251,48 @@ www, backup off-droplet și programarea retenției. Acestea nu au fost activate
 implicit. Vezi [raportul de verificare](VERIFICATION.md).
 
 Referințe pentru textele de informare: [Comisia Europeană — drepturile persoanelor](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en) și [informarea privind datele personale](https://europa.eu/youreurope/citizens/consumers/internet-telecoms/data-protection-online-privacy/).
+
+## Production readiness și checklist
+
+Vezi [PRE_LAUNCH_CHECKLIST.md](PRE_LAUNCH_CHECKLIST.md) și
+[runbook-ul complet](docs/PRODUCTION_READINESS.md) pentru deploy, backup zilnic,
+offsite, retenție și restore. Configurația incompletă produce health 503 și
+refuză candidatul înainte de înlocuirea containerului curent.
+
+În producția exclusiv Cloudflare Tunnel configurează:
+
+```dotenv
+TRUST_CF_HEADERS=true
+```
+
+Este permis **numai când originul nu este accesibil direct de pe internet**:
+Compose păstrează `127.0.0.1:3002:3000`, tunelul rulează pe același host. Nu expune
+portul pe 0.0.0.0 și nu adăuga un proxy public care permite ocolirea Cloudflare.
+Se folosește exclusiv `cf-connecting-ip`, validat ca IP; `X-Forwarded-For` arbitrar
+este ignorat. Lipsa headerului folosește fallback comun, fără a inventa o identitate.
+
+### Cloudflare Access pentru admin (recomandat)
+
+În Cloudflare Zero Trust → Access → Applications, configurează aplicații self-hosted
+pentru ambele hostname-uri folosite, cu protecție pentru `/admin`, `/admin/*`,
+`/api/admin` și `/api/admin/*`. Include rutele rădăcină, nu doar subcăile.
+Permite numai identitățile admin necesare, cu MFA dacă este disponibil, fără
+politică Bypass generală. Testează accesul neautentificat în browser și la API.
+Login-ul aplicației rămâne al doilea strat; nu se implementează OAuth.
+
+Nu proteja domeniul întreg: `/api/leads`, `/calculator-baterie` și `/rezultat`
+rămân publice. Configurarea Access este manuală, nu activată de acest commit.
+[Documentație Cloudflare](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/).
+
+### Repository și ZIP
+
+```bash
+npm run hooks:install
+npm run check:repository
+npm run package
+```
+
+ZIP-ul este în `dist/merita-sau-nu-source.zip`, numai surse cunoscute de Git,
+fără ENV/DB/backups/build/dependențe/rapoarte/artefacte. Python 3 și Git sunt
+necesare. `.env.example` rămâne versionat; toate `.env*` sunt excluse din ZIP.
+Nu loga payload-uri, căutări admin, cookie-uri sau exporturi CSV.

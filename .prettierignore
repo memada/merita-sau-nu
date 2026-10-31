@@ -8,3 +8,6 @@ playwright-report
 package-lock.json
 next-env.d.ts
 *.tsbuildinfo
+
+dist
+.env*

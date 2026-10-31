@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import { createHmac } from 'node:crypto';
 import { getDb } from './db';
 import { appUrl } from './config';
@@ -12,9 +13,14 @@ export function hashIdentifier(value: string) {
 }
 export function clientKey(request: Request) {
   // Never trust arbitrary X-Forwarded-For from the public Internet.
+  const cfIp = request.headers.get('cf-connecting-ip') || '';
   const ip =
     process.env.TRUST_CF_HEADERS === 'true'
-      ? request.headers.get('cf-connecting-ip') || 'unknown'
+      ? isIP(cfIp)
+        ? isIP(cfIp) === 6
+          ? new URL(`http://[${cfIp}]`).hostname
+          : cfIp
+        : 'unknown'
       : 'shared-origin';
   return hashIdentifier(ip);
 }

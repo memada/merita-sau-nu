@@ -18,6 +18,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run check:repository
       - run: npm test
       - run: npm run typecheck
       - name: Registry login
@@ -80,9 +81,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -F "$RUNNER_TEMP/merita_ssh_config" merita-droplet 'mkdir -p /srv/merita-sau-nu/deploy'
+          ssh -F "$RUNNER_TEMP/merita_ssh_config" merita-droplet 'mkdir -p /srv/merita-sau-nu/deploy /srv/merita-sau-nu/scripts'
           scp -F "$RUNNER_TEMP/merita_ssh_config" docker-compose.yml merita-droplet:/srv/merita-sau-nu/
           scp -F "$RUNNER_TEMP/merita_ssh_config" deploy/deploy.sh merita-droplet:/srv/merita-sau-nu/deploy/
+          scp -F "$RUNNER_TEMP/merita_ssh_config" scripts/backup-production.sh merita-droplet:/srv/merita-sau-nu/scripts/
       - name: Deploy isolated Compose project
         env:
           DOCR_ACCESS_TOKEN: ${{ secrets.DOCR_ACCESS_TOKEN }}

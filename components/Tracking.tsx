@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { captureAttribution, trackEvent } from '../lib/analytics';
+import { analyticsContext, captureAttribution, trackEvent } from '../lib/analytics';
 const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 export default function Tracking() {
   const path = usePathname();
@@ -14,11 +14,14 @@ export default function Tracking() {
     }
   }, []);
   useEffect(() => {
+    if (id)
+      (window as unknown as Record<string, unknown>)[`ga-disable-${id}`] =
+        path.startsWith('/admin') || consent !== 'yes';
     if (!path.startsWith('/admin')) {
       captureAttribution();
       if (path === '/') trackEvent('landing_view');
     }
-  }, [path]);
+  }, [path, consent]);
   useEffect(() => {
     if (consent !== 'yes' || !id || !/^G-[A-Z0-9]+$/.test(id) || path.startsWith('/admin')) return;
     if (document.getElementById('merita-ga')) return;
@@ -27,7 +30,12 @@ export default function Tracking() {
       window.dataLayer!.push(arguments);
     };
     window.gtag('js', new Date());
-    window.gtag('config', id, { send_page_view: false });
+    window.gtag('config', id, {
+      send_page_view: false,
+      allow_google_signals: false,
+      allow_ad_personalization_signals: false,
+      ...analyticsContext(),
+    });
     if (path === '/') trackEvent('landing_view');
     const script = document.createElement('script');
     script.id = 'merita-ga';

@@ -4,10 +4,7 @@ export function appUrl() {
   return new URL(process.env.APP_URL || 'http://localhost:3002').origin;
 }
 export function operatorConfigured() {
-  return !!(
-    process.env.OPERATOR_NAME &&
-    process.env.OPERATOR_ADDRESS &&
-    process.env.PRIVACY_EMAIL &&
-    process.env.SUPPLIER_DISCLOSURE
+  return ['OPERATOR_NAME', 'OPERATOR_ADDRESS', 'PRIVACY_EMAIL', 'SUPPLIER_DISCLOSURE'].every(
+    (key) => !!process.env[key]?.trim(),
   );
 }

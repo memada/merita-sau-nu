@@ -48,3 +48,21 @@ Verificare suplimentară: puterea PV lipsă blochează pasul 1 chiar dacă urmă
 pași nu sunt completați. Progresul salvat incomplet revine la primul pas invalid,
 păstrează consumul introdus și permite finalizarea după corectare. Testat pe mobil
 și desktop.
+
+## Production-readiness pass — 31 octombrie 2026
+
+- npm ci: trecut, registry public; audit după actualizare: 0 vulnerabilități.
+- Next 16.4.3, Zod 4.6.7, dependențe tranzitive compatibile actualizate.
+- npm test: 56/56; include validarea config/health, separarea cheilor CF, rollback
+  tranzacție, restart în proces nou, migrații repetate și backup consistent.
+- npm run typecheck, npm run format, npm run build: trecute.
+- Playwright Chrome: 8/8, mobil/desktop, HTTPS local cu certificat temporar; DB temporară.
+  GA ID sintetic și stub de script, fără telemetrie trimisă unui cont real.
+- Include căutare admin fără q în URL, CSV, logout și consent analytics.
+- Teste arhivare și backup zilnic cu upload reușit/eșuat, fără credentials/provider real.
+- Regulile gitignore acoperă toate căile cerute; .env.example este permis.
+
+Aceste verificări sunt locale; noua versiune nu a fost publicată. Nu s-a schimbat
+ENV de producție, nu s-a instalat cron, Access sau storage extern. Docker nu este
+instalat local: candidate preflight/Compose trebuie verificate la următorul deploy.
+React 18 rămâne păstrat; Next 16 avertizează că suportul va fi eliminat în Next 17.

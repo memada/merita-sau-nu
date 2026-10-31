@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
-const origin = 'http://127.0.0.1:3102';
+const origin = 'https://127.0.0.1:3102';
 test('calculator → lead → protected admin → update → filtered CSV', async ({ page }, testInfo) => {
-  await page.setExtraHTTPHeaders({ 'cf-connecting-ip': `e2e-ui-${testInfo.project.name}` });
+  await page.setExtraHTTPHeaders({
+    'cf-connecting-ip': testInfo.project.name === 'mobile' ? '192.0.2.1' : '192.0.2.2',
+  });
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/?utm_source=tiktok&utm_campaign=test-campanie');
@@ -67,12 +69,23 @@ test('calculator → lead → protected admin → update → filtered CSV', asyn
   expect(api.status()).toBe(200);
   const data = await api.json();
   expect(data.leads.some((l: { name: string }) => l.name === name)).toBe(true);
+  await page.goto('/admin/leads');
+  await page.getByRole('textbox', { name: 'Caută' }).fill(name);
+  await page.getByRole('button', { name: 'Aplică filtrele' }).click();
+  await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.has('q')).toBe(false);
+  expect(await page.getByRole('link', { name: 'Export CSV' }).getAttribute('href')).not.toContain(
+    'q=',
+  );
   const csv = await page.request.get('/api/admin/leads/export?status=VERIFIED');
   expect(csv.headers()['content-type']).toContain('text/csv');
   expect(await csv.text()).toContain(name);
   await page.getByRole('button', { name: 'Ieși', exact: true }).click();
   await expect(page).toHaveURL(/admin\/login/);
   expect((await page.request.get('/api/admin/leads')).status()).toBe(401);
+  expect(
+    (await page.context().cookies()).some((cookie) => cookie.name === 'merita_admin_search'),
+  ).toBe(false);
   expect(errors).toEqual([]);
 });
 test('private APIs, origin, server validation, duplicates, honeypot and rate limit', async ({
@@ -84,7 +97,10 @@ test('private APIs, origin, server validation, duplicates, honeypot and rate lim
     '/api/admin/leads/nonexistent',
   ])
     expect((await request.get(path)).status()).toBe(401);
-  const headers = { Origin: origin, 'cf-connecting-ip': `e2e-api-${testInfo.project.name}` };
+  const headers = {
+    Origin: origin,
+    'cf-connecting-ip': testInfo.project.name === 'mobile' ? '192.0.2.3' : '192.0.2.4',
+  };
   const calculator = {
     hasSolar: 'yes',
     pvPowerKw: 6,
@@ -183,4 +199,35 @@ test('PV is required on step 1 and incomplete saved progress is repaired', async
   await expect(page.getByText('6 kW', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Vezi estimarea' }).click();
   await expect(page).toHaveURL(/rezultat/);
+});
+
+test('analytics consent gates loading, sanitizes context, and disables collection on admin', async ({
+  page,
+}) => {
+  await page.route('https://www.googletagmanager.com/**', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: '/* test-only stub: no external telemetry */',
+    }),
+  );
+  await page.goto('/?phone=private-value&utm_source=tiktok');
+  // QA build uses a synthetic GA ID. Without an ID, analytics must stay absent.
+  if ((await page.getByRole('button', { name: 'Preferințe de măsurare' }).count()) === 0) {
+    await expect(page.locator('#merita-ga')).toHaveCount(0);
+    return;
+  }
+  const consent = page.getByRole('button', { name: 'Accept măsurarea' });
+  await expect(consent).toBeVisible();
+  await expect(page.locator('#merita-ga')).toHaveCount(0);
+  await consent.click();
+  await expect(page.locator('#merita-ga')).toHaveCount(1);
+  const payload = await page.evaluate(() => JSON.stringify(window.dataLayer));
+  expect(payload).not.toContain('private-value');
+  expect(payload).not.toContain('utm_source');
+  await page.goto('/admin/login');
+  await expect(page.locator('#merita-ga')).toHaveCount(0);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Preferințe de măsurare' }).click();
+  await page.getByRole('button', { name: 'Doar funcționale' }).click();
+  await expect(page.locator('#merita-ga')).toHaveCount(0);
 });

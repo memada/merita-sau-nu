@@ -8,6 +8,8 @@ if docker compose ps --status running --services | grep -qx merita-sau-nu; then
 fi
 previous_image=$(docker inspect --format '{{.Image}}' merita-sau-nu 2>/dev/null || true)
 docker compose pull
+# Validate the candidate with runtime ENV before replacing the running app or migrating DB.
+docker compose run --rm --no-deps --entrypoint node merita-sau-nu scripts/check-production-config.mjs
 docker compose up -d --force-recreate --wait --wait-timeout 120
 # Remove only the replaced image, after the new container is healthy.
 # No --force: Docker protects images referenced by any other container.

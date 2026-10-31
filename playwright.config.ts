@@ -7,8 +7,9 @@ export default defineConfig({
   timeout: 45000,
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:3102',
+    baseURL: 'https://127.0.0.1:3102',
     trace: 'retain-on-failure',
+    ignoreHTTPSErrors: true,
     channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
   },
   projects: [
@@ -17,7 +18,8 @@ export default defineConfig({
   ],
   webServer: {
     command: 'node scripts/e2e-server.mjs',
-    url: 'http://127.0.0.1:3102/api/health',
+    url: 'https://127.0.0.1:3102/api/health',
+    ignoreHTTPSErrors: true,
     reuseExistingServer: false,
     timeout: 60000,
   },

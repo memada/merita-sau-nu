@@ -1,11 +1,10 @@
-# Fișierele proiectului
+# Fișiere proiect
 
-Inventarul surselor versionabile din repository-ul separat `merita-sau-nu`.
-Sunt excluse dependențele, buildurile, bazele de date, backupurile, ENV privat și
-capturile QA. [Wiki-ul](docs/wiki/README.md) descrie configurația finală.
+Inventar sursă, fără ENV private, baze de date, backupuri sau artefacte generate.
 
 - [.dockerignore](.dockerignore)
 - [.env.example](.env.example)
+- [.githooks/pre-commit](.githooks/pre-commit)
 - [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
 - [.gitignore](.gitignore)
 - [.npmrc](.npmrc)
@@ -15,6 +14,7 @@ capturile QA. [Wiki-ul](docs/wiki/README.md) descrie configurația finală.
 - [AGENTS.md](AGENTS.md)
 - [Dockerfile](Dockerfile)
 - [FILES.md](FILES.md)
+- [PRE_LAUNCH_CHECKLIST.md](PRE_LAUNCH_CHECKLIST.md)
 - [README.md](README.md)
 - [TECHNICAL_PLAN.md](TECHNICAL_PLAN.md)
 - [VERIFICATION.md](VERIFICATION.md)
@@ -61,12 +61,14 @@ capturile QA. [Wiki-ul](docs/wiki/README.md) descrie configurația finală.
 - [deploy/deploy.sh](deploy/deploy.sh)
 - [docker-compose.yml](docker-compose.yml)
 - [docker-entrypoint.sh](docker-entrypoint.sh)
+- [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md)
 - [docs/wiki/README.md](docs/wiki/README.md)
 - [docs/wiki/architecture.md](docs/wiki/architecture.md)
 - [docs/wiki/decisions.md](docs/wiki/decisions.md)
 - [docs/wiki/deployment.md](docs/wiki/deployment.md)
 - [docs/wiki/operations.md](docs/wiki/operations.md)
 - [docs/wiki/troubleshooting.md](docs/wiki/troubleshooting.md)
+- [lib/adminSearch.ts](lib/adminSearch.ts)
 - [lib/analytics.ts](lib/analytics.ts)
 - [lib/auth.ts](lib/auth.ts)
 - [lib/batteryCalculator.ts](lib/batteryCalculator.ts)
@@ -78,6 +80,7 @@ capturile QA. [Wiki-ul](docs/wiki/README.md) descrie configurația finală.
 - [lib/options.ts](lib/options.ts)
 - [lib/phone.ts](lib/phone.ts)
 - [lib/privacy.ts](lib/privacy.ts)
+- [lib/productionConfig.ts](lib/productionConfig.ts)
 - [lib/security.ts](lib/security.ts)
 - [lib/validation.ts](lib/validation.ts)
 - [meritasaunu.txt](meritasaunu.txt)
@@ -87,11 +90,17 @@ capturile QA. [Wiki-ul](docs/wiki/README.md) descrie configurația finală.
 - [package.json](package.json)
 - [playwright.config.ts](playwright.config.ts)
 - [postcss.config.mjs](postcss.config.mjs)
+- [scripts/backup-production.sh](scripts/backup-production.sh)
 - [scripts/backup.mjs](scripts/backup.mjs)
+- [scripts/check-production-config.mjs](scripts/check-production-config.mjs)
+- [scripts/check-repository.mjs](scripts/check-repository.mjs)
 - [scripts/db.mjs](scripts/db.mjs)
 - [scripts/e2e-server.mjs](scripts/e2e-server.mjs)
 - [scripts/hash-password.mjs](scripts/hash-password.mjs)
 - [scripts/migrate.mjs](scripts/migrate.mjs)
+- [scripts/package.py](scripts/package.py)
+- [scripts/production-config.d.mts](scripts/production-config.d.mts)
+- [scripts/production-config.mjs](scripts/production-config.mjs)
 - [scripts/retention.mjs](scripts/retention.mjs)
 - [scripts/seed.ts](scripts/seed.ts)
 - [scripts/start.mjs](scripts/start.mjs)
@@ -100,6 +109,8 @@ capturile QA. [Wiki-ul](docs/wiki/README.md) descrie configurația finală.
 - [tests/calculator.test.ts](tests/calculator.test.ts)
 - [tests/e2e/flow.spec.ts](tests/e2e/flow.spec.ts)
 - [tests/fixtures.ts](tests/fixtures.ts)
+- [tests/privacy-operations.test.ts](tests/privacy-operations.test.ts)
+- [tests/production-readiness.test.ts](tests/production-readiness.test.ts)
 - [tests/registry-cleanup.test.ts](tests/registry-cleanup.test.ts)
 - [tests/scoring-validation.test.ts](tests/scoring-validation.test.ts)
 - [tests/storage.test.ts](tests/storage.test.ts)

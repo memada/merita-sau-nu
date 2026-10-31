@@ -20,7 +20,7 @@ ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 DATABASE_URL=file:/app/data/l
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --chown=node:node db ./db
-COPY --chown=node:node scripts/db.mjs scripts/migrate.mjs scripts/backup.mjs scripts/retention.mjs ./scripts/
+COPY --chown=node:node scripts/db.mjs scripts/migrate.mjs scripts/backup.mjs scripts/retention.mjs scripts/production-config.mjs scripts/check-production-config.mjs ./scripts/
 COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
 RUN mkdir -p /app/data /app/backups && chown -R node:node /app/data /app/backups && chmod +x docker-entrypoint.sh
 USER node

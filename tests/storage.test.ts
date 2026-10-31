@@ -119,3 +119,13 @@ test('Romanian date filters respect the 25-hour DST transition and malformed dat
   );
   assert.doesNotThrow(() => listLeads({ from: '2026-99-99' }));
 });
+
+test('failed createLead rolls back the transaction and a later valid lead still saves', () => {
+  const count = () => getDb().prepare('SELECT count(*) n FROM leads').get()!.n;
+  const before = count();
+  const invalid = submission();
+  invalid.contact.city = null as unknown as string;
+  assert.throws(() => createLead(invalid));
+  assert.equal(count(), before);
+  assert.ok(getLead(createLead(submission('0700000099')).id));
+});

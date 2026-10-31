@@ -1,3 +1,7 @@
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { ADMIN_SEARCH_COOKIE, adminSearch } from '../../../../lib/adminSearch';
+import { currentAdmin } from '../../../../lib/auth';
 import Link from 'next/link';
 import { filtersFrom, listLeads } from '../../../../lib/leads';
 import { counties, statusLabels, timelineLabels } from '../../../../lib/options';
@@ -10,8 +14,25 @@ export default async function LeadsPage({
   const raw = await searchParams;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(raw))
-    if (typeof value === 'string') params.set(key, value);
-  const filters = filtersFrom(params);
+    if (typeof value === 'string' && key !== 'q') params.set(key, value);
+  async function applyFilters(form: FormData) {
+    'use server';
+    if (!(await currentAdmin())) redirect('/admin/login');
+    (await cookies()).set(ADMIN_SEARCH_COOKIE, String(form.get('q') || '').slice(0, 200), {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 900,
+    });
+    const next = new URLSearchParams();
+    for (const key of ['status', 'county', 'category', 'from', 'to', 'timeline']) {
+      const value = String(form.get(key) || '');
+      if (value) next.set(key, value.slice(0, 200));
+    }
+    redirect(`/admin/leads?${next}`);
+  }
+  const filters = { ...filtersFrom(params), q: await adminSearch() };
   const result = listLeads(filters);
   function pageUrl(page: number) {
     const q = new URLSearchParams(params);
@@ -29,7 +50,7 @@ export default async function LeadsPage({
           Export CSV
         </a>
       </div>
-      <form className="filter-grid card" action="/admin/leads">
+      <form className="filter-grid card" action={applyFilters}>
         <label className="field">
           Caută
           <input
@@ -89,7 +110,17 @@ export default async function LeadsPage({
         </label>
         <div className="actions">
           <button className="button small">Aplică filtrele</button>
-          <Link href="/admin/leads">Resetează</Link>
+          <button
+            className="preferences-link"
+            formAction={async () => {
+              'use server';
+              if (!(await currentAdmin())) redirect('/admin/login');
+              (await cookies()).delete(ADMIN_SEARCH_COOKIE);
+              redirect('/admin/leads');
+            }}
+          >
+            Resetează
+          </button>
         </div>
       </form>
       <LeadTable leads={result.leads} />

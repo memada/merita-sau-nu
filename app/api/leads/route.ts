@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import { leadSchema } from '../../../lib/validation';
 import { createLead } from '../../../lib/leads';
 import { clientKey, readJson, sameOrigin, takeRateLimit } from '../../../lib/security';
-import { operatorConfigured } from '../../../lib/config';
+import { validateProductionConfig } from '../../../lib/productionConfig';
 export const runtime = 'nodejs';
 export async function POST(request: Request) {
+  if (!validateProductionConfig().configured)
+    return NextResponse.json(
+      { error: 'Cererile de ofertă nu sunt încă disponibile. Revino în curând.' },
+      { status: 503 },
+    );
   if (!sameOrigin(request))
     return NextResponse.json({ error: 'Originea cererii nu este permisă.' }, { status: 403 });
   try {
@@ -28,11 +33,6 @@ export async function POST(request: Request) {
       );
     if (parsed.data.website)
       return NextResponse.json({ error: 'Cererea nu a putut fi validată.' }, { status: 400 });
-    if (process.env.NODE_ENV === 'production' && !operatorConfigured())
-      return NextResponse.json(
-        { error: 'Cererile de ofertă nu sunt încă disponibile. Revino în curând.' },
-        { status: 503 },
-      );
     const lead = createLead(parsed.data, {
       ipHash: key,
       userAgent: request.headers.get('user-agent') || '',

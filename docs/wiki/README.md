@@ -56,3 +56,9 @@ Actualizează pagina relevantă când se schimbă ENV, domeniu, porturi, tunel,
 workflow, schemă DB sau regulile calculatorului. Nu copia secrete, exporturi de
 leaduri sau conversația integrală. Înregistrează data și dovada verificării; dacă
 un detaliu nu a fost confirmat, marchează-l explicit.
+
+## Production-readiness pass ulterior
+
+Vezi [runbook-ul din 31 octombrie](../PRODUCTION_READINESS.md) și
+[checklist-ul](../../PRE_LAUNCH_CHECKLIST.md). Acestea descriu noua validare și
+backupul pregătit în cod; nu confirmă instalarea lor pe droplet.

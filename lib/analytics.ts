@@ -13,10 +13,47 @@ declare global {
     gtag?: (...args: unknown[]) => void;
   }
 }
+export function analyticsContext() {
+  const allowed = [
+    '/',
+    '/calculator-baterie',
+    '/rezultat',
+    '/multumim',
+    '/confidentialitate',
+    '/termeni',
+  ];
+  const path = allowed.includes(window.location.pathname) ? window.location.pathname : '/';
+  return {
+    page_location: window.location.origin + path,
+    page_referrer: '',
+    page_title: 'Merită sau Nu',
+  };
+}
 export function trackEvent(name: AnalyticsEvent, params: Params = {}) {
-  if (typeof window === 'undefined') return;
-  if (window.gtag) window.gtag('event', name, params);
-  else if (process.env.NODE_ENV === 'development') console.debug('[analytics]', name, params);
+  if (typeof window === 'undefined' || window.location.pathname.startsWith('/admin')) return;
+  try {
+    if (localStorage.getItem('merita_analytics') !== 'yes') return;
+  } catch {
+    return;
+  }
+  const allowed: AnalyticsEvent[] = [
+    'landing_view',
+    'calculator_start',
+    'calculator_step_completed',
+    'calculator_completed',
+    'lead_form_opened',
+    'lead_form_started',
+    'lead_submitted',
+  ];
+  if (!allowed.includes(name)) return;
+  const safe =
+    name === 'calculator_step_completed' &&
+    Number.isInteger(params.step) &&
+    Number(params.step) >= 1 &&
+    Number(params.step) <= 5
+      ? { step: params.step }
+      : {};
+  if (window.gtag) window.gtag('event', name, { ...safe, ...analyticsContext() });
 }
 export function captureAttribution() {
   try {

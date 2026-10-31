@@ -57,3 +57,12 @@ This repository is independent of CuStrăini. UI and operational explanations us
 If `.codegraph/` exists at the repository root, use CodeGraph before textual code
 searches or source reads to locate/understand code. Otherwise skip it; do not index
 unless requested. `codegraph explore "<question or symbols>"` is the shell entrypoint.
+
+## Production-readiness policy (31 October 2026)
+
+Read `docs/PRODUCTION_READINESS.md` and `PRE_LAUNCH_CHECKLIST.md` before deploying.
+The new candidate rejects production config without TRUST_CF_HEADERS=true; the
+historical live value above is not evidence that the new policy was deployed.
+Daily/offsite backup integration and Cloudflare Access require manual setup.
+Keep centralized startup/preflight/health validation and never log ENV values.
+Source packages include tracked files only, exclude every .env\*, and never include DBs.
