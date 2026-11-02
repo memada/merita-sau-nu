@@ -6,6 +6,16 @@ if [[ ! "${DOCR_IMAGE:-}" =~ ^registry\.digitalocean\.com/([a-z0-9-]+)/merita-sa
   exit 1
 fi
 registry="${BASH_REMATCH[1]}"
+verify_attempts=${REGISTRY_VERIFY_ATTEMPTS:-18}
+verify_delay=${REGISTRY_VERIFY_DELAY_SECONDS:-10}
+if [[ ! "$verify_attempts" =~ ^[1-9][0-9]?$ ]] || (( verify_attempts > 30 )); then
+  echo 'Invalid REGISTRY_VERIFY_ATTEMPTS (expected 1-30); refusing image deletion.' >&2
+  exit 1
+fi
+if [[ ! "$verify_delay" =~ ^(0|[1-9][0-9]?)$ ]] || (( verify_delay > 30 )); then
+  echo 'Invalid REGISTRY_VERIFY_DELAY_SECONDS (expected 0-30); refusing image deletion.' >&2
+  exit 1
+fi
 repository=merita-sau-nu
 normalize_digest() {
   local value="${1#sha256:}"
@@ -92,7 +102,7 @@ while [ -n "$pending" ]; do
 done
 # The registry listing can briefly contain manifests whose DELETE already succeeded.
 # Poll reads only; never delete additional images based on a stale final listing.
-for attempt in 1 2 3 4 5 6; do
+for (( attempt=1; attempt<=verify_attempts; attempt++ )); do
   if [ "$(latest_digest)" != "$keep" ]; then
     echo 'latest changed before final verification.' >&2
     exit 1
@@ -112,10 +122,11 @@ for attempt in 1 2 3 4 5 6; do
     printf 'Cleanup verified: %s current manifest(s) remain. Latest: %s\n' "$count" "$keep"
     exit 0
   fi
-  if [ "$attempt" -lt 6 ]; then
-    printf 'Waiting for registry listing to reflect deletions (%s/6).\n' "$attempt"
-    sleep "${REGISTRY_VERIFY_DELAY_SECONDS:-5}"
+  printf 'Registry verification %s/%s: latest visible=%s; older/unexpected manifests visible=%s; total=%s.\n' "$attempt" "$verify_attempts" "$found_latest" "$old_present" "$count"
+  if [ "$attempt" -lt "$verify_attempts" ]; then
+    printf 'Waiting for registry listing to reflect deletions (%s/%s).\n' "$attempt" "$verify_attempts"
+    sleep "$verify_delay"
   fi
 done
-echo 'Registry listing did not converge after cleanup verification retries.' >&2
+echo 'Registry listing did not converge after cleanup verification retries; deploy/public health already completed. Inspect registry state before retrying cleanup.' >&2
 exit 1

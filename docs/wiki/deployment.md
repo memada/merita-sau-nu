@@ -90,7 +90,7 @@ se șterg părinții, apoi se reîncearcă. Fiecare trecere trebuie să facă pr
 Alte erori sunt raportate, nu ignorate.
 
 Lista registry-ului poate reflecta ștergerile cu întârziere. Verificarea finală
-face maximum 6 citiri, cu 5 secunde între ele. Rezultatul confirmat în producție:
+face implicit maximum 18 citiri, cu 10 secunde între ele (actualizat la 2 noiembrie 2026). Rezultatul confirmat în producție:
 
 ```text
 Cleanup verified: 1 current manifest(s) remain.

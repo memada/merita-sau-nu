@@ -77,3 +77,13 @@ React 18 rămâne păstrat; Next 16 avertizează că suportul va fi eliminat în
   admin sau cu Origin absent/străin. Numai baze temporare, fără ștergeri în producție.
 - README și wiki operațiuni actualizate. Copiile de backup și exporturile vechi
   sunt în afara ștergerii manuale din aplicație.
+
+## Confirmare curățare registry — 2 noiembrie 2026
+
+- 20/20 teste dedicate curățării trecute, inclusiv listă lentă care depășește
+  vechea limită, timeout persistent și parametri de retry invalizi.
+- bash -n deploy/cleanup-registry.sh, TypeScript și git diff --check trecute.
+- Timeout implicit extins la 18 citiri cu pauze de 10 secunde; verificarea finală
+  rămâne read-only și păstrează failure dacă lista nu converge.
+- README și wiki actualizate. Modificarea nu a fost încă verificată printr-o
+  execuție reală DOCR; logul primit arată deploy/health reușite înainte de timeout.

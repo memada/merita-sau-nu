@@ -315,3 +315,21 @@ Endpointul DELETE /api/admin/leads/[id] necesită sesiune admin și Origin valid
 la fel ca modificarea statusului. Nu se loghează datele șterse și nu se trimit
 în analytics. Nu este nevoie de migrare DB sau de o schimbare Cloudflare Access.
 Backupurile și CSV-urile deja descărcate nu sunt modificate; au retenție separată.
+
+## Registry: verificare întârziată după ștergere — 2 noiembrie 2026
+
+Dacă buildul, deploy-ul și health public trec, dar ultima etapă spune
+`Registry listing did not converge`, noua aplicație a fost deja pornită și
+verificată. Scriptul nu a putut confirma lista finală de imagini în timpul permis;
+nu este dovada că deploy-ul a eșuat sau că registry-ul este deja curățat.
+
+Verificarea face acum implicit 18 citiri, la 10 secunde (maximum 170 secunde de
+pauze plus durata API), în locul celor 6 citiri la 5 secunde. Logul arată dacă
+latest este vizibil și dacă persistă manifeste vechi/neprevăzute. După timeout,
+etapa rămâne eșuată, fără ștergeri suplimentare pe baza unei liste posibil vechi.
+Protecția latest, verificarea grafului și oprirea la schimbarea tagului rămân active.
+
+Opțiuni pentru CI/teste: REGISTRY_VERIFY_ATTEMPTS (1–30) și
+REGISTRY_VERIFY_DELAY_SECONDS (0–30). Configurația invalidă este refuzată înainte
+de ștergere. Dacă problema persistă, inspectează lista de manifeste și latest;
+nu șterge manual imaginea curentă și nu folosi prune global.

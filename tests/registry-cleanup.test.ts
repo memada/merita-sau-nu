@@ -29,7 +29,7 @@ if (args[2] === 'list-tags') {
   const listCountFile=dir+'/list-count';
   const listCount=fs.existsSync(listCountFile)?Number(fs.readFileSync(listCountFile,'utf8'))+1:1;
   fs.writeFileSync(listCountFile,String(listCount));
-  const stale=mode==='never-converges'||(mode==='stale-list' && listCount===2);
+  const stale=mode==='never-converges'||(mode==='stale-list' && listCount===2)||(mode==='slow-list' && listCount<=9);
   console.log(JSON.stringify([{digest: mode === 'raw' ? keep.slice(7) : keep}, {digest: mode === 'raw' ? old.slice(7) : old}, ...(['index','nested','child-error','referenced'].includes(mode) ? [{digest:'sha256:'+'c'.repeat(64)}, {digest:'sha256:'+'d'.repeat(64)}] : []), ...(mode === 'invalid' ? [{digest:'invalid'}] : [])].filter(item => mode !== 'referenced' || item.digest !== 'sha256:'+'c'.repeat(64)).filter(item => stale || !fs.existsSync(dir + '/deleted') || !fs.readFileSync(dir + '/deleted','utf8').includes(item.digest))));
 } else if (args[2] === 'delete-manifest') {
   const parent='sha256:'+'d'.repeat(64);
@@ -71,6 +71,9 @@ for (const mode of [
   'delete-error',
   'stale-list',
   'never-converges',
+  'slow-list',
+  'invalid-attempts',
+  'invalid-delay',
 ]) {
   test(`registry cleanup: ${mode}`, () => {
     const dir = mkdtempSync(join(tmpdir(), 'merita-cleanup-'));
@@ -84,7 +87,8 @@ for (const mode of [
           ...process.env,
           PATH: `${dir}:${process.env.PATH}`,
           CLEANUP_TEST_MODE: mode,
-          REGISTRY_VERIFY_DELAY_SECONDS: '0',
+          REGISTRY_VERIFY_DELAY_SECONDS: mode === 'invalid-delay' ? '31' : '0',
+          REGISTRY_VERIFY_ATTEMPTS: mode === 'invalid-attempts' ? '0' : '12',
           CLEANUP_TEST_DIR: dir,
           DOCR_IMAGE: `registry.digitalocean.com/test-registry/${mode === 'wrong-repository' ? 'custraini-frontend' : 'merita-sau-nu'}`,
         },
@@ -92,10 +96,12 @@ for (const mode of [
       const deletes = existsSync(join(dir, 'deleted'))
         ? readFileSync(join(dir, 'deleted'), 'utf8').trim().split('\n')
         : [];
-      if (mode === 'normal' || mode === 'raw' || mode === 'stale-list') {
+      if (mode === 'normal' || mode === 'raw' || mode === 'stale-list' || mode === 'slow-list') {
         assert.equal(result.status, 0, result.stderr);
         assert.deepEqual(deletes, [old]);
         assert.ok(result.stdout.includes(keep));
+        if (mode === 'slow-list')
+          assert.ok(Number(readFileSync(join(dir, 'list-count'), 'utf8')) > 7);
       } else if (mode === 'index' || mode === 'nested') {
         assert.equal(result.status, 0, result.stderr);
         assert.deepEqual(deletes, [obsolete]);
