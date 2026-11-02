@@ -80,9 +80,38 @@ test('calculator → lead → protected admin → update → filtered CSV', asyn
   const csv = await page.request.get('/api/admin/leads/export?status=VERIFIED');
   expect(csv.headers()['content-type']).toContain('text/csv');
   expect(await csv.text()).toContain(name);
+  await page.getByRole('link', { name, exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/leads\/[^/?]+$/);
+  const detailUrl = page.url();
+  const leadId = new URL(detailUrl).pathname.split('/').at(-1)!;
+  for (const headers of [{}, { Origin: 'https://other.invalid' }] as Record<string, string>[]) {
+    expect((await page.request.delete(`/api/admin/leads/${leadId}`, { headers })).status()).toBe(
+      403,
+    );
+  }
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByRole('button', { name: 'Șterge leadul', exact: true }).click();
+  expect((await page.request.get(`/api/admin/leads/${leadId}`)).status()).toBe(200);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Șterge leadul', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/leads(?:\?.*)?$/);
+  await expect(page.getByRole('link', { name, exact: true })).toHaveCount(0);
+  expect((await page.request.get(`/api/admin/leads/${leadId}`)).status()).toBe(404);
+  expect((await page.request.get('/api/admin/leads/export')).status()).toBe(200);
+  expect(await (await page.request.get('/api/admin/leads/export')).text()).not.toContain(leadId);
+  expect(
+    (
+      await page.request.delete(`/api/admin/leads/${leadId}`, { headers: { Origin: origin } })
+    ).status(),
+  ).toBe(404);
   await page.getByRole('button', { name: 'Ieși', exact: true }).click();
   await expect(page).toHaveURL(/admin\/login/);
   expect((await page.request.get('/api/admin/leads')).status()).toBe(401);
+  expect(
+    (
+      await page.request.delete(`/api/admin/leads/${leadId}`, { headers: { Origin: origin } })
+    ).status(),
+  ).toBe(401);
   expect(
     (await page.context().cookies()).some((cookie) => cookie.name === 'merita_admin_search'),
   ).toBe(false);

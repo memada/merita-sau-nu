@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentAdmin } from '../../../../../lib/auth';
-import { getLead, statusHistory, updateLead } from '../../../../../lib/leads';
+import { deleteLead, getLead, statusHistory, updateLead } from '../../../../../lib/leads';
 import { adminUpdateSchema } from '../../../../../lib/validation';
 import { readJson, sameOrigin } from '../../../../../lib/security';
 type Context = { params: Promise<{ id: string }> };
@@ -36,4 +36,18 @@ export async function PATCH(request: Request, context: Context) {
   return lead
     ? NextResponse.json({ lead })
     : NextResponse.json({ error: 'Cererea nu există.' }, { status: 404 });
+}
+
+export async function DELETE(request: Request, context: Context) {
+  if (!(await currentAdmin()))
+    return NextResponse.json({ error: 'Autentificare necesară.' }, { status: 401 });
+  if (!sameOrigin(request))
+    return NextResponse.json({ error: 'Cerere nepermisă.' }, { status: 403 });
+  try {
+    return deleteLead((await context.params).id)
+      ? NextResponse.json({ success: true })
+      : NextResponse.json({ error: 'Cererea nu există.' }, { status: 404 });
+  } catch {
+    return NextResponse.json({ error: 'Ștergerea a eșuat. Încearcă din nou.' }, { status: 500 });
+  }
 }

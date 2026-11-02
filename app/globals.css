@@ -1686,3 +1686,16 @@ tbody tr:hover {
   text-decoration: underline;
   cursor: pointer;
 }
+
+.lead-delete {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #dce2d5);
+}
+.button.danger {
+  background: #a52b24;
+  color: #fff;
+}
+.button.danger:hover {
+  background: #85211c;
+}

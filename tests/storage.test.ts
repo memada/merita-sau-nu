@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import {
   createLead,
+  deleteLead,
   findDuplicate,
   getLead,
   listLeads,
@@ -128,4 +129,20 @@ test('failed createLead rolls back the transaction and a later valid lead still 
   assert.throws(() => createLead(invalid));
   assert.equal(count(), before);
   assert.ok(getLead(createLead(submission('0700000099')).id));
+});
+
+test('delete removes only selected lead and history, unlinks duplicates, and is idempotent', () => {
+  const parent = createLead(submission('0700000098'));
+  const duplicate = createLead(submission('0700000098'));
+  updateLead(parent.id, 'VERIFIED', 'Test-only history', 'test-admin');
+  assert.equal(statusHistory(parent.id).length, 1);
+  assert.equal(getLead(duplicate.id)!.duplicateOfLeadId, parent.id);
+  assert.equal(deleteLead(parent.id), true);
+  assert.equal(getLead(parent.id), null);
+  assert.equal(statusHistory(parent.id).length, 0);
+  assert.ok(getLead(duplicate.id));
+  assert.equal(getLead(duplicate.id)!.duplicateOfLeadId, null);
+  assert.equal(deleteLead(parent.id), false);
+  assert.equal(deleteLead("' OR 1=1 --"), false);
+  assert.ok(getLead(duplicate.id));
 });

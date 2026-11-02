@@ -302,3 +302,16 @@ Nu loga payload-uri, căutări admin, cookie-uri sau exporturi CSV.
 La fiecare modificare a proiectului, actualizează acest README și documentația
 Markdown relevantă (wiki, runbook, verificări sau checklist), astfel încât să
 reflecte implementarea și starea verificată. Regula este păstrată și în AGENTS.md.
+
+## Ștergere manuală leaduri — 2 noiembrie 2026
+
+În admin, deschide detaliile unui lead și apasă **Șterge leadul**, sub butonul de
+salvare. Confirmarea este obligatorie; Anulează păstrează leadul. După ștergere,
+aplicația revine la listă. Leadul dispare din liste, statistici și exporturile noi.
+Istoricul său este șters automat; alte leaduri duplicate sunt păstrate, fără link
+către înregistrarea eliminată. Nu există undo în admin.
+
+Endpointul DELETE /api/admin/leads/[id] necesită sesiune admin și Origin valid,
+la fel ca modificarea statusului. Nu se loghează datele șterse și nu se trimit
+în analytics. Nu este nevoie de migrare DB sau de o schimbare Cloudflare Access.
+Backupurile și CSV-urile deja descărcate nu sunt modificate; au retenție separată.

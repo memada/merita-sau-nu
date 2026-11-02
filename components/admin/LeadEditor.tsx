@@ -38,6 +38,31 @@ export default function LeadEditor({
       setBusy(false);
     }
   }
+  async function remove() {
+    if (
+      busy ||
+      !window.confirm(
+        'Ștergi definitiv acest lead și istoricul său? Acțiunea nu poate fi anulată din admin.',
+      )
+    )
+      return;
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch(`/api/admin/leads/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(
+          data?.error || 'Ștergerea a eșuat. Verifică autentificarea și încearcă din nou.',
+        );
+      }
+      router.replace('/admin/leads');
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Ștergerea a eșuat.');
+      setBusy(false);
+    }
+  }
   return (
     <form className="card" onSubmit={save}>
       <h2>Verificare și note interne</h2>
@@ -61,6 +86,12 @@ export default function LeadEditor({
       <button className="button" disabled={busy}>
         {busy ? 'Se salvează…' : 'Salvează modificările'}
       </button>
+      <div className="lead-delete">
+        <p className="micro">Ștergerea elimină definitiv leadul și istoricul său din aplicație.</p>
+        <button type="button" className="button danger" disabled={busy} onClick={remove}>
+          Șterge leadul
+        </button>
+      </div>
       {message && <p role="status">{message}</p>}
     </form>
   );

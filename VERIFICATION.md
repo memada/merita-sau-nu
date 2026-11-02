@@ -66,3 +66,14 @@ Aceste verificări sunt locale; noua versiune nu a fost publicată. Nu s-a schim
 ENV de producție, nu s-a instalat cron, Access sau storage extern. Docker nu este
 instalat local: candidate preflight/Compose trebuie verificate la următorul deploy.
 React 18 rămâne păstrat; Next 16 avertizează că suportul va fi eliminat în Next 17.
+
+## Ștergere lead din admin — 2 noiembrie 2026
+
+- 57/57 teste unitare/integrate trecute; verifică ștergerea leadului și istoricului,
+  păstrarea duplicatelor și eliminarea referinței către înregistrarea ștearsă.
+- TypeScript și build production trecute.
+- 8/8 teste Playwright Chrome, mobil și desktop: anulare fără ștergere, confirmare,
+  revenire la listă, excludere din CSV, 404 la ștergere repetată, refuz fără sesiune
+  admin sau cu Origin absent/străin. Numai baze temporare, fără ștergeri în producție.
+- README și wiki operațiuni actualizate. Copiile de backup și exporturile vechi
+  sunt în afara ștergerii manuale din aplicație.

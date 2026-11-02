@@ -199,3 +199,16 @@ docker compose exec -T merita-sau-nu node scripts/retention.mjs --apply
 
 Jobul nu este programat automat. Exporturile, backupurile și datele trimise
 furnizorilor au nevoie de retenție separată. Acordul pentru oferte nu este newsletter.
+
+## Ștergere manuală leaduri — 2 noiembrie 2026
+
+În admin, deschide detaliile unui lead și apasă **Șterge leadul**, sub butonul de
+salvare. Confirmarea este obligatorie; Anulează păstrează leadul. După ștergere,
+aplicația revine la listă. Leadul dispare din liste, statistici și exporturile noi.
+Istoricul său este șters automat; alte leaduri duplicate sunt păstrate, fără link
+către înregistrarea eliminată. Nu există undo în admin.
+
+Endpointul DELETE /api/admin/leads/[id] necesită sesiune admin și Origin valid,
+la fel ca modificarea statusului. Nu se loghează datele șterse și nu se trimit
+în analytics. Nu este nevoie de migrare DB sau de o schimbare Cloudflare Access.
+Backupurile și CSV-urile deja descărcate nu sunt modificate; au retenție separată.

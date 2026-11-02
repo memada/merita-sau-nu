@@ -91,6 +91,10 @@ function decode(row: Record<string, unknown>): Lead {
     calculatorResult: JSON.parse(row.calculatorResult as string),
   } as Lead;
 }
+// One atomic DELETE: foreign keys cascade history and unlink surviving duplicates.
+export function deleteLead(id: string) {
+  return getDb().prepare('DELETE FROM leads WHERE id = ?').run(id).changes > 0;
+}
 export function getLead(id: string) {
   const row = getDb().prepare('SELECT * FROM leads WHERE id = ?').get(id);
   return row ? decode(row) : null;
